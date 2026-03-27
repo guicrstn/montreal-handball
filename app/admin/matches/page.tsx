@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Plus, Edit, Trash2, Calendar, MapPin } from "lucide-react"
 import type { Match } from "@/lib/handball-api"
-import { getAllMatches, deleteMatch } from "@/lib/matches-storage"
 import Link from "next/link"
 
 export default function AdminMatchesPage() {
@@ -18,7 +17,6 @@ export default function AdminMatchesPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check authentication
     const isLoggedIn = sessionStorage.getItem("admin_logged_in")
     if (!isLoggedIn) {
       router.push("/admin")
@@ -29,16 +27,26 @@ export default function AdminMatchesPage() {
   }, [router])
 
   const loadMatches = async () => {
-    const data = await getAllMatches()
-    setMatches(data)
-    setLoading(false)
+    try {
+      const response = await fetch("/api/matches")
+      const data = await response.json()
+      setMatches(data)
+    } catch (error) {
+      console.error("Error loading matches:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce match ?")) return
+    if (!confirm("Etes-vous sur de vouloir supprimer ce match ?")) return
 
-    await deleteMatch(id)
-    loadMatches()
+    try {
+      await fetch(`/api/matches/${id}`, { method: "DELETE" })
+      loadMatches()
+    } catch (error) {
+      console.error("Error deleting match:", error)
+    }
   }
 
   const upcomingMatches = matches.filter((m) => m.status === "upcoming")
@@ -57,7 +65,7 @@ export default function AdminMatchesPage() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Gestion des Matchs</h1>
-              <p className="text-muted-foreground">Créez et gérez les matchs de toutes les équipes</p>
+              <p className="text-muted-foreground">Creez et gerez les matchs de toutes les equipes</p>
             </div>
             <Link href="/admin/matches/new">
               <Button size="lg">
@@ -69,14 +77,14 @@ export default function AdminMatchesPage() {
 
           {/* Upcoming Matches */}
           <section className="mb-12">
-            <h2 className="mb-4 text-2xl font-bold">Matchs à Venir ({upcomingMatches.length})</h2>
+            <h2 className="mb-4 text-2xl font-bold">Matchs a Venir ({upcomingMatches.length})</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {upcomingMatches.map((match) => (
                 <MatchCard key={match.id} match={match} onDelete={handleDelete} />
               ))}
               {upcomingMatches.length === 0 && (
                 <Card className="col-span-2">
-                  <CardContent className="py-12 text-center text-muted-foreground">Aucun match à venir</CardContent>
+                  <CardContent className="py-12 text-center text-muted-foreground">Aucun match a venir</CardContent>
                 </Card>
               )}
             </div>
@@ -84,7 +92,7 @@ export default function AdminMatchesPage() {
 
           {/* Finished Matches */}
           <section>
-            <h2 className="mb-4 text-2xl font-bold">Matchs Terminés ({finishedMatches.length})</h2>
+            <h2 className="mb-4 text-2xl font-bold">Matchs Termines ({finishedMatches.length})</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {finishedMatches.map((match) => (
                 <MatchCard key={match.id} match={match} onDelete={handleDelete} />
@@ -92,7 +100,7 @@ export default function AdminMatchesPage() {
               {finishedMatches.length === 0 && (
                 <Card className="col-span-2">
                   <CardContent className="py-12 text-center text-muted-foreground">
-                    Aucun résultat enregistré
+                    Aucun resultat enregistre
                   </CardContent>
                 </Card>
               )}
@@ -113,7 +121,7 @@ function MatchCard({ match, onDelete }: { match: Match; onDelete: (id: string) =
         <div className="mb-2 flex items-center justify-between">
           <Badge variant="secondary">{match.category}</Badge>
           <Badge variant={match.status === "finished" ? "default" : "outline"}>
-            {match.status === "finished" ? "Terminé" : "À venir"}
+            {match.status === "finished" ? "Termine" : "A venir"}
           </Badge>
         </div>
         <CardTitle className="text-base">{match.competition}</CardTitle>
@@ -155,7 +163,7 @@ function MatchCard({ match, onDelete }: { match: Match; onDelete: (id: string) =
           <Link href={`/admin/matches/${match.id}/edit`} className="flex-1">
             <Button variant="outline" className="w-full bg-transparent" size="sm">
               <Edit className="mr-2 h-4 w-4" />
-              {match.status === "finished" ? "Modifier" : "Ajouter Résultat"}
+              {match.status === "finished" ? "Modifier" : "Ajouter Resultat"}
             </Button>
           </Link>
           <Button variant="outline" size="sm" onClick={() => onDelete(match.id)}>

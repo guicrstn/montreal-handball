@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Trophy } from "lucide-react"
 import Link from "next/link"
-import { getMatchById, updateMatch } from "@/lib/matches-storage"
 import type { Match } from "@/lib/handball-api"
 
 export default function EditMatchPage() {
@@ -40,27 +39,42 @@ export default function EditMatchPage() {
   }, [router, matchId])
 
   const loadMatch = async () => {
-    const data = await getMatchById(matchId)
-    if (data) {
-      setMatch(data)
-      setHomeScore(data.homeScore?.toString() || "")
-      setAwayScore(data.awayScore?.toString() || "")
-      setStatus(data.status)
+    try {
+      const response = await fetch(`/api/matches/${matchId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMatch(data)
+        setHomeScore(data.homeScore?.toString() || "")
+        setAwayScore(data.awayScore?.toString() || "")
+        setStatus(data.status)
+      }
+    } catch (error) {
+      console.error("Error loading match:", error)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
-    await updateMatch(matchId, {
-      homeScore: homeScore ? Number.parseInt(homeScore) : undefined,
-      awayScore: awayScore ? Number.parseInt(awayScore) : undefined,
-      status,
-    })
+    try {
+      await fetch(`/api/matches/${matchId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          homeScore: homeScore ? Number.parseInt(homeScore) : undefined,
+          awayScore: awayScore ? Number.parseInt(awayScore) : undefined,
+          status,
+        }),
+      })
 
-    router.push("/admin/matches")
+      router.push("/admin/matches")
+    } catch (error) {
+      console.error("Error updating match:", error)
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -68,7 +82,7 @@ export default function EditMatchPage() {
   }
 
   if (!match) {
-    return <div className="flex min-h-screen items-center justify-center">Match non trouvé</div>
+    return <div className="flex min-h-screen items-center justify-center">Match non trouve</div>
   }
 
   return (
@@ -88,7 +102,7 @@ export default function EditMatchPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <Trophy className="h-6 w-6 text-primary" />
-                {status === "finished" ? "Modifier le Résultat" : "Ajouter le Résultat"}
+                {status === "finished" ? "Modifier le Resultat" : "Ajouter le Resultat"}
               </CardTitle>
               <CardDescription>
                 {match.homeTeam} vs {match.awayTeam}
@@ -102,12 +116,12 @@ export default function EditMatchPage() {
                 <div className="rounded-lg bg-muted/50 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Équipe à Domicile</p>
+                      <p className="text-sm text-muted-foreground">Equipe a Domicile</p>
                       <p className="font-semibold">{match.homeTeam}</p>
                     </div>
                     <div className="px-4 text-2xl font-bold text-muted-foreground">VS</div>
                     <div className="flex-1 text-right">
-                      <p className="text-sm text-muted-foreground">Équipe à l'Extérieur</p>
+                      <p className="text-sm text-muted-foreground">Equipe a l'Exterieur</p>
                       <p className="font-semibold">{match.awayTeam}</p>
                     </div>
                   </div>
@@ -121,8 +135,8 @@ export default function EditMatchPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="upcoming">À venir</SelectItem>
-                      <SelectItem value="finished">Terminé</SelectItem>
+                      <SelectItem value="upcoming">A venir</SelectItem>
+                      <SelectItem value="finished">Termine</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -144,7 +158,7 @@ export default function EditMatchPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="awayScore">Score Extérieur *</Label>
+                      <Label htmlFor="awayScore">Score Exterieur *</Label>
                       <Input
                         id="awayScore"
                         type="number"
