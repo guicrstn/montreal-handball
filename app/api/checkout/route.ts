@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-})
+// Initialize Stripe lazily to avoid build-time errors
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) {
+    throw new Error('STRIPE_SECRET_KEY is not configured')
+  }
+  return new Stripe(key, {
+    apiVersion: '2024-12-18.acacia',
+  })
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +22,8 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const stripe = getStripe()
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
